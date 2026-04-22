@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  full_name     String
+  email         String         @unique
+  password_hash String
+  role          String         @default("user") // admin or user
+  created_at    DateTime       @default(now())
+
+  events        Event[]        @relation("CreatedEvents")
+  registrations Registration[]
+  feedbacks     Feedback[]
+  notifications Notification[]
+}
+
+model Notification {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  message    String
+  type       String   @default("info") // info, success, warning, error
+  read       Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id            Int            @id @default(autoincrement())
+  title         String
+  description   String
+  venue         String
+  event_date    DateTime
+  category      String
+  poster_url    String?
+  seats         Int            @default(0)
+  created_by    Int
+  created_at    DateTime       @default(now())
+
+  creator       User           @relation("CreatedEvents", fields: [created_by], references: [id])
+  registrations Registration[]
+  feedbacks     Feedback[]
+}
+
+model Registration {
+  id                Int      @id @default(autoincrement())
+  user_id           Int
+  event_id          Int
+  registration_date DateTime @default(now())
+  attendance_status Boolean  @default(false)
+
+  user              User     @relation(fields: [user_id], references: [id])
+  event             Event    @relation(fields: [event_id], references: [id])
+
+  @@unique([user_id, event_id])
+}
+
+model Feedback {
+  id       Int     @id @default(autoincrement())
+  user_id  Int
+  event_id Int
+  rating   Int     // 1-5
+  comments String?
+
+  user     User    @relation(fields: [user_id], references: [id])
+  event    Event   @relation(fields: [event_id], references: [id])
+
+  @@unique([user_id, event_id])
+}
